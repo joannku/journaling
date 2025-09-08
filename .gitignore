@@ -29,8 +29,6 @@ config/email_matching.json
 config/*.xlsx
 
 data/raw/**
-!data/raw/mystical_words/
-!data/raw/mystical_words/mysticality_dict.csv
 
 data/processed/**
 data/final/**
