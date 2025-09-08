@@ -27,7 +27,8 @@ SCRIPTS = [
     'merge_qual_with_anon_jours.py', # merge qualtrics data with anonymised journal data
     'update_status.py', # study completion management tool
     'study_group.py', # export study groups by PID
-    'filter_by_status.py' # filter by status - include only Eligible ppts
+    'filter_by_status.py', # filter by status - include only Eligible ppts
+    'final_filter.py' # final participant filtering for all analyses
 ]
 
 def run_scripts(preproc_dir):
