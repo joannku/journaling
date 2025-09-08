@@ -14,14 +14,12 @@ CORE_DIR = setup_paths()
 import pandas as pd
 import json
 from modules.GoogleSheetHandler import GoogleSheetHandler
-from modules.StatsHelper import StatsHelper
 from modules.QualtricsProcessing import QualtricsProcessing
 from modules.Logger import Logger
 from modules.GoogleSheetHandler import GoogleSheetHandler
 from modules.QualtricsProcessing import QualtricsProcessing, SuspiciousUsersChecks, QuestionnaireCompletion
 from modules.JournalAnalysisManager import JournalAnalysisManager
 from modules.Logger import Logger
-from modules.OutlookEmailer import OutlookEmailer
 from modules.GoogleSheetHandler import GoogleSheetHandler
 from anonymise_emails import map_email_to_pid
 
@@ -72,10 +70,9 @@ if __name__ == '__main__':
     qualtrics_pre = QualtricsProcessing()
     qualtrics_quest = QuestionnaireCompletion()
     qualtrics_susp = SuspiciousUsersChecks()
-    journal = JournalAnalysisManager()
+    journal = JournalAnalysisManager(creds)
     gs_handler = GoogleSheetHandler(creds)
     logger = Logger()
-    emailer = OutlookEmailer(creds)
 
     df1 = qualtrics_pre.process_prescreening()
     df2 = qualtrics_pre.process_baseline()
