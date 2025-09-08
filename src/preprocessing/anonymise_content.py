@@ -107,7 +107,7 @@ def create_ignore_list():
     mystical_words = [subword for word in mystical_words for subword in word.split('/')]
     mystical_words = [word.lower() for word in mystical_words]
 
-    ignore_list = ['god', 'ok', 'bot', 'boti', 'jesus']
+    ignore_list = ['bot', 'boti']
     ignore_list.extend(mystical_words)
 
     return ignore_list
@@ -122,13 +122,16 @@ def identify_new_journals(dfj, dfj_processed):
 
 
 if __name__ == '__main__':
+    
+    # Set to True to include mystical words in ignore list
+    use_mystical_words = False
 
     pipe = TokenClassificationChunkPipeline(model=model, tokenizer=tokenizer, aggregation_strategy="simple")
     
     dfj = pd.read_csv(os.path.join(CORE_DIR, 'data/processed/2_journals_preprocessed.csv'))
     anon_filepath = os.path.join(CORE_DIR, 'data/processed/4_journals_anon_content_both.csv')
 
-    ignore_list = create_ignore_list()
+    ignore_list = create_ignore_list() if use_mystical_words else ['bot', 'boti']
     counter = 0 
 
     if os.path.exists(anon_filepath):
