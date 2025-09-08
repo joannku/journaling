@@ -20,7 +20,9 @@ from datetime import datetime
 
 if __name__ == "__main__":
 
-    creds_path = '/Users/joannakuc/Code/journaling/config/creds.json'
+    # Get the project root directory (two levels up from current script)
+    project_root = os.path.dirname(os.path.dirname(current_dir))
+    creds_path = os.path.join(project_root, 'config', 'creds.json')
 
     with open(creds_path) as file:
         creds_path = json.load(file)
