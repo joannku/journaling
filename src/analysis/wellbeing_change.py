@@ -85,7 +85,7 @@ def get_significance_label(p_value):
     else:
         return "ns"
 
-def create_pre_post_changes_figure(df, display_fig=True, save_fig=True):
+def create_pre_post_changes_figure(df, display_fig=True, save_fig=True, show_participant_count=False, dpi=300):
     """Create main before/after boxplots matching original Plotly style."""
     print("Creating pre-post changes visualization...")
     
@@ -204,16 +204,17 @@ def create_pre_post_changes_figure(df, display_fig=True, save_fig=True):
         width=1200
     )
     
-    # Add participant count annotation
-    fig.add_annotation(
-        text=f'Total Participants: {len(df)}',
-        xref='paper',
-        yref='paper',
-        x=0.95,
-        y=-0.35,
-        showarrow=False,
-        font=dict(size=12)
-    )
+    # Add participant count annotation (optional)
+    if show_participant_count:
+        fig.add_annotation(
+            text=f'Total Participants: {len(df)}',
+            xref='paper',
+            yref='paper',
+            x=0.95,
+            y=-0.35,
+            showarrow=False,
+            font=dict(size=12)
+        )
     
     # Display figure
     if display_fig:
@@ -223,9 +224,142 @@ def create_pre_post_changes_figure(df, display_fig=True, save_fig=True):
     if save_fig:
         os.makedirs(FIGURES_DIR, exist_ok=True)
         output_path = os.path.join(FIGURES_DIR, 'wellbeing_pre_post_changes.png')
-        pio.write_image(fig, output_path, scale=5)
-        print(f"✅ Pre-post changes figure saved to: {output_path}")
+        # Calculate scale factor to achieve desired DPI (default plotly DPI is ~72)
+        scale_factor = dpi / 72
+        pio.write_image(fig, output_path, width=1200, height=400, scale=scale_factor)
+        print(f"✅ Pre-post changes figure saved to: {output_path} (DPI: {dpi})")
     
+    return fig
+
+def create_before_after_scatterplots(df, display_fig=True, save_fig=True, show_participant_count=False, dpi=400):
+    """Create before/after scatterplots by study group with y=x reference line."""
+    print("Creating before/after scatterplots...")
+
+    pairs = [
+        ('B_WEMWBS_Total', 'E_WEMWBS_Total', 'WEMWBS'),
+        ('B_GAD7_Total', 'E_GAD7_Total', 'GAD7'),
+        ('B_PHQ9_Total', 'E_PHQ9_Total', 'PHQ9')
+    ]
+
+    # Display names and axis ranges per measure
+    display_names = {
+        'WEMWBS': 'Wellbeing',
+        'GAD7': 'Anxiety',
+        'PHQ9': 'Depression'
+    }
+    axis_ranges = {
+        'WEMWBS': (0, 72, 10),   # (min, max, tick)
+        'GAD7': (0, 22, 3),
+        'PHQ9': (0, 28, 3)
+    }
+    # Questionnaire labels for axis titles
+    questionnaire_labels = {
+        'WEMWBS': 'WEMWBS',
+        'GAD7': 'GAD-7',
+        'PHQ9': 'PHQ-9'
+    }
+
+    # Color mapping for groups
+    colors = {
+        'A': 'orchid',
+        'B': 'turquoise',
+        'C': 'orange'
+    }
+
+    # Legend labels
+    coding = {
+        'A': 'Cognitive Summary',
+        'B': 'Emotional Summary',
+        'C': 'No Summary'
+    }
+
+    fig = make_subplots(rows=1, cols=3, subplot_titles=[display_names[p[2]] for p in pairs])
+
+    sorted_groups = sorted(df['StudyGroup'].dropna().unique())
+
+    for i, (base_col, exit_col, code) in enumerate(pairs, start=1):
+        # Scatter points per group
+        for j, group in enumerate(sorted_groups):
+            group_data = df[df['StudyGroup'] == group]
+            fig.add_trace(
+                go.Scatter(
+                    x=group_data[base_col],
+                    y=group_data[exit_col],
+                    mode='markers',
+                    name=coding.get(group, str(group)),
+                    marker=dict(color=colors.get(group, 'gray'), size=8, symbol='circle', opacity=0.85),
+                    showlegend=True if i == 1 else False
+                ),
+                row=1, col=i
+            )
+
+        # y = x reference line using axis range
+        xmin, xmax, _ = axis_ranges[code]
+        fig.add_trace(
+            go.Scatter(
+                x=[xmin, xmax],
+                y=[xmin, xmax],
+                mode='lines',
+                line=dict(dash='dash', color='black'),
+                name='No Change',
+                showlegend=True if i == 1 else False
+            ),
+            row=1, col=i
+        )
+
+        # Axis labels and identical ranges/ticks
+        fig.update_xaxes(
+            title_text=f'Pre-study {questionnaire_labels[code]} Scores',
+            range=[xmin, xmax],
+            tick0=xmin,
+            dtick=axis_ranges[code][2],
+            row=1, col=i
+        )
+        fig.update_yaxes(
+            title_text=f'Post-study {questionnaire_labels[code]} Scores',
+            range=[xmin, xmax],
+            tick0=xmin,
+            dtick=axis_ranges[code][2],
+            row=1, col=i
+        )
+
+    fig.update_layout(
+        # title_text='Before-and-After Comparison of Scores',
+        template='plotly_white',
+        height=420,
+        width=1300,
+        legend=dict(
+            orientation='h',
+            yanchor='top',
+            y=-0.2,
+            xanchor='center',
+            x=0.5,
+            bordercolor='rgba(0,0,0,0)'
+        ),
+        # margin=dict(l=60, r=20, t=60, b=110)
+    )
+
+    # Add participant count annotation (optional, match position with pre-post figure)
+    if show_participant_count:
+        fig.add_annotation(
+            text=f'Total Participants: {len(df)}',
+            xref='paper', yref='paper',
+            x=0.95, y=-0.35,
+            showarrow=False,
+            font=dict(size=12)
+        )
+
+    if display_fig:
+        fig.show()
+
+    if save_fig:
+        os.makedirs(FIGURES_DIR, exist_ok=True)
+        out_path = os.path.join(FIGURES_DIR, 'wellbeing_before_after_scatterplots.png')
+        # Calculate scale factor to achieve desired DPI (default plotly DPI is ~72)
+        scale_factor = dpi / 72
+        pio.write_image(fig, out_path, width=1300, height=420, scale=scale_factor)
+        print(f"Before/after scatterplots saved to {out_path} (DPI: {dpi})")
+
     return fig
 
 def print_summary_statistics(df):
@@ -266,8 +400,13 @@ def print_summary_statistics(df):
     print("• PHQ9: Lower scores = less depression")
     print("• Significance: *** p<0.001, ** p<0.01, * p<0.05, ns = not significant")
 
-def main():
-    """Main function to run the simplified wellbeing analysis."""
+def main(show_participant_count=False, dpi=400):
+    """Main function to run the simplified wellbeing analysis.
+    
+    Args:
+        show_participant_count (bool): Whether to display total participant count on plots. Default: False.
+        dpi (int): DPI resolution for saved figures. Default: 300.
+    """
     print("Starting simplified wellbeing pre-post analysis...")
     
     # Load pre-filtered data
@@ -276,8 +415,11 @@ def main():
         return
     
     # Create the main visualization
-    fig = create_pre_post_changes_figure(df, display_fig=True, save_fig=True)
-    
+    fig = create_pre_post_changes_figure(df, display_fig=True, save_fig=True, show_participant_count=show_participant_count, dpi=dpi)
+
+    # Create before/after scatterplots figure (as in stats.ipynb)
+    create_before_after_scatterplots(df, display_fig=True, save_fig=True, show_participant_count=show_participant_count, dpi=dpi)
+
     # Print summary statistics
     print_summary_statistics(df)
     
